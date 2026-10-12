@@ -82,3 +82,11 @@ jobs:
         env:
           QDRANT_URL: http://localhost:6333
         run: uv run pytest tests/integration_tests/test_qdrant.py
+
+  docker-compose:
+    name: Docker Compose Smoke Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and test the compose stack
+        run: scripts/docker-smoke-test.sh

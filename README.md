@@ -328,6 +328,22 @@ The API is stateless: send the whole conversation in `messages` on every call. I
 
 Unset values fall back to the graph defaults. Clients can't change these per request.
 
+## Docker Compose
+
+`docker-compose.yml` runs the HTTP API together with a Qdrant vector store whose data is kept in a named volume:
+
+```bash
+cp .env.example .env     # add ANTHROPIC_API_KEY / OPENAI_API_KEY, optionally RAG_API_KEY
+docker compose up -d --build
+curl http://localhost:8000/health
+```
+
+The API waits for Qdrant to be healthy before starting and uses it as the retriever (`RAG_RETRIEVER_PROVIDER` defaults to `qdrant` here). Both ports are bound to `127.0.0.1`; change `API_PORT` / `QDRANT_PORT` to use other host ports. Set `RAG_API_KEY` before exposing the API beyond your machine.
+
+`docker compose down` keeps the indexed data; `docker compose down -v` deletes it.
+
+`scripts/docker-smoke-test.sh` builds and starts the stack on separate ports, checks health, auth and Qdrant connectivity, and verifies that data survives a Qdrant restart. It needs no model API keys.
+
 ## How to customize
 
 You can customize this retrieval agent template in several ways:
