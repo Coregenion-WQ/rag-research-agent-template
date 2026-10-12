@@ -282,6 +282,35 @@ You'll know that the indexing is complete when the indexer "delete"'s the conten
 
 Next, open the "retrieval_graph" using the dropdown in the top-left. Ask it questions about LangChain to confirm it can fetch the required information!
 
+## HTTP API
+
+Besides LangGraph Studio, the graphs can be served as a small REST API so other applications can index documents and ask questions.
+
+```bash
+pip install -e .
+uvicorn --factory rag_api.app:create_app --port 8000
+```
+
+Interactive docs are served at `http://localhost:8000/docs`.
+
+| Method | Path      | Description |
+| ------ | --------- | ----------- |
+| GET    | `/health` | Liveness check (no API key needed) |
+| POST   | `/index`  | Add documents: `{"documents": [{"page_content": "...", "metadata": {}, "id": "optional"}]}` |
+| POST   | `/chat`   | Ask a question: `{"messages": [{"role": "user", "content": "..."}]}`. Returns `answer`, `route` and the `sources` used |
+
+The API is stateless: send the whole conversation in `messages` on every call. It is configured with environment variables:
+
+| Variable | Description |
+| -------- | ----------- |
+| `RAG_API_KEY` | If set, every request except `/health` must send it in the `X-API-Key` header |
+| `RAG_RETRIEVER_PROVIDER` | Vector store to use, e.g. `qdrant` |
+| `RAG_EMBEDDING_MODEL` | Embedding model, e.g. `openai/text-embedding-3-small` |
+| `RAG_QUERY_MODEL` / `RAG_RESPONSE_MODEL` | Chat models in `provider/model` form |
+| `RAG_SEARCH_K` | Number of documents to retrieve per search query |
+
+Unset values fall back to the graph defaults. Clients can't change these per request.
+
 ## How to customize
 
 You can customize this retrieval agent template in several ways:
