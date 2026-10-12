@@ -34,9 +34,11 @@ jobs:
       - name: Lint with ruff
         run: ruff check .
       - name: Check formatting
-        run: ruff format --check src tests
+        run: ruff format --check src tests examples
       - name: Type check with mypy
-        run: mypy --strict src/
+        run: |
+          mypy --strict src/
+          MYPYPATH=src mypy --strict examples/
       - name: Check README spelling
         uses: codespell-project/actions-codespell@v2
         with:
