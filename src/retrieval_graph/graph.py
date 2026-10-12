@@ -14,12 +14,13 @@ from langgraph.graph import END, START, StateGraph
 
 from retrieval_graph.configuration import AgentConfiguration
 from retrieval_graph.researcher_graph.graph import graph as researcher_graph
+from retrieval_graph.researcher_graph.state import ResearcherState
 from retrieval_graph.state import AgentState, InputState, Router
 from shared.utils import format_docs, load_chat_model
 
 
 async def analyze_and_route_query(
-    state: AgentState, *, config: RunnableConfig
+    state: AgentState, config: RunnableConfig
 ) -> dict[str, Router]:
     """Analyze the user's query and determine the appropriate routing.
 
@@ -70,7 +71,7 @@ def route_query(
 
 
 async def ask_for_more_info(
-    state: AgentState, *, config: RunnableConfig
+    state: AgentState, config: RunnableConfig
 ) -> dict[str, list[BaseMessage]]:
     """Generate a response asking the user for more information.
 
@@ -94,7 +95,7 @@ async def ask_for_more_info(
 
 
 async def respond_to_general_query(
-    state: AgentState, *, config: RunnableConfig
+    state: AgentState, config: RunnableConfig
 ) -> dict[str, list[BaseMessage]]:
     """Generate a response to a general query not related to LangChain.
 
@@ -118,7 +119,7 @@ async def respond_to_general_query(
 
 
 async def create_research_plan(
-    state: AgentState, *, config: RunnableConfig
+    state: AgentState, config: RunnableConfig
 ) -> dict[str, list[str] | str]:
     """Create a step-by-step research plan for answering a LangChain-related query.
 
@@ -144,13 +145,14 @@ async def create_research_plan(
     return {"steps": response["steps"], "documents": "delete"}
 
 
-async def conduct_research(state: AgentState) -> dict[str, Any]:
+async def conduct_research(state: AgentState, config: RunnableConfig) -> dict[str, Any]:
     """Execute the first step of the research plan.
 
     This function takes the first step from the research plan and uses it to conduct research.
 
     Args:
         state (AgentState): The current state of the agent, including the research plan steps.
+        config (RunnableConfig): Configuration forwarded to the researcher subgraph.
 
     Returns:
         dict[str, list[str]]: A dictionary with 'documents' containing the research results and
@@ -160,7 +162,9 @@ async def conduct_research(state: AgentState) -> dict[str, Any]:
         - Invokes the researcher_graph with the first step of the research plan.
         - Updates the state with the retrieved documents and removes the completed step.
     """
-    result = await researcher_graph.ainvoke({"question": state.steps[0]})
+    result = await researcher_graph.ainvoke(
+        ResearcherState(question=state.steps[0]), config
+    )
     return {"documents": result["documents"], "steps": state.steps[1:]}
 
 
@@ -184,7 +188,7 @@ def check_finished(state: AgentState) -> Literal["respond", "conduct_research"]:
 
 
 async def respond(
-    state: AgentState, *, config: RunnableConfig
+    state: AgentState, config: RunnableConfig
 ) -> dict[str, list[BaseMessage]]:
     """Generate a final response to the user's query based on the conducted research.
 
@@ -207,7 +211,9 @@ async def respond(
 
 
 # Define the graph
-builder = StateGraph(AgentState, input=InputState, config_schema=AgentConfiguration)
+builder = StateGraph(
+    AgentState, context_schema=AgentConfiguration, input_schema=InputState
+)
 builder.add_node(analyze_and_route_query)
 builder.add_node(ask_for_more_info)
 builder.add_node(respond_to_general_query)

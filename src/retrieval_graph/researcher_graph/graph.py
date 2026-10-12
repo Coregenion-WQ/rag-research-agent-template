@@ -18,7 +18,7 @@ from shared.utils import load_chat_model
 
 
 async def generate_queries(
-    state: ResearcherState, *, config: RunnableConfig
+    state: ResearcherState, config: RunnableConfig
 ) -> dict[str, list[str]]:
     """Generate search queries based on the question (a step in the research plan).
 
@@ -46,7 +46,7 @@ async def generate_queries(
 
 
 async def retrieve_documents(
-    state: QueryState, *, config: RunnableConfig
+    state: QueryState, config: RunnableConfig
 ) -> dict[str, list[Document]]:
     """Retrieve documents based on a given query.
 
@@ -91,7 +91,7 @@ builder.add_node(retrieve_documents)
 builder.add_edge(START, "generate_queries")
 builder.add_conditional_edges(
     "generate_queries",
-    retrieve_in_parallel,  # type: ignore
+    retrieve_in_parallel,
     path_map=["retrieve_documents"],
 )
 builder.add_edge("retrieve_documents", END)

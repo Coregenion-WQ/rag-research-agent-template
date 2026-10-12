@@ -5,8 +5,6 @@ Functions:
     load_chat_model: Load a chat model from a model name.
 """
 
-from typing import Optional
-
 from langchain.chat_models import init_chat_model
 from langchain_core.documents import Document
 from langchain_core.language_models import BaseChatModel
@@ -29,7 +27,7 @@ def _format_doc(doc: Document) -> str:
     return f"<document{meta}>\n{doc.page_content}\n</document>"
 
 
-def format_docs(docs: Optional[list[Document]]) -> str:
+def format_docs(docs: list[Document] | None) -> str:
     """Format a list of documents as XML.
 
     This function takes a list of Document objects and formats them into a single XML string.
