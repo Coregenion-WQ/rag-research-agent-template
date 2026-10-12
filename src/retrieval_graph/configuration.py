@@ -16,16 +16,30 @@ class AgentConfiguration(BaseConfiguration):
     # models
 
     query_model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
-        default="anthropic/claude-3-haiku-20240307",
+        default="anthropic/claude-haiku-5-5",
         metadata={
             "description": "The language model used for processing and refining queries. Should be in the form: provider/model-name."
         },
     )
 
     response_model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
-        default="anthropic/claude-3-5-sonnet-20240620",
+        default="anthropic/claude-opus-5-5",
         metadata={
             "description": "The language model used for generating responses. Should be in the form: provider/model-name."
+        },
+    )
+
+    query_model_fallbacks: list[str] = field(
+        default_factory=list,
+        metadata={
+            "description": "Models to try, in order, if the query model fails (e.g. a provider outage). Same provider/model-name form, e.g. ['openai/gpt-5-mini']."
+        },
+    )
+
+    response_model_fallbacks: list[str] = field(
+        default_factory=list,
+        metadata={
+            "description": "Models to try, in order, if the response model fails. Same provider/model-name form, e.g. ['openai/gpt-5']."
         },
     )
 

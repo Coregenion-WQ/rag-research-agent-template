@@ -16,7 +16,7 @@ from retrieval_graph.configuration import AgentConfiguration
 from retrieval_graph.researcher_graph.graph import graph as researcher_graph
 from retrieval_graph.researcher_graph.state import ResearcherState
 from retrieval_graph.state import AgentState, InputState, Router
-from shared.utils import format_docs, load_chat_model
+from shared.utils import format_docs, make_chat_model, make_structured_model
 
 
 async def analyze_and_route_query(
@@ -35,13 +35,13 @@ async def analyze_and_route_query(
         dict[str, Router]: A dictionary containing the 'router' key with the classification result (classification type and logic).
     """
     configuration = AgentConfiguration.from_runnable_config(config)
-    model = load_chat_model(configuration.query_model)
+    model = make_structured_model(
+        configuration.query_model, Router, configuration.query_model_fallbacks
+    )
     messages = [
         {"role": "system", "content": configuration.router_system_prompt}
     ] + state.messages
-    response = cast(
-        Router, await model.with_structured_output(Router).ainvoke(messages)
-    )
+    response = cast(Router, await model.ainvoke(messages))
     return {"router": response}
 
 
@@ -85,7 +85,9 @@ async def ask_for_more_info(
         dict[str, list[str]]: A dictionary with a 'messages' key containing the generated response.
     """
     configuration = AgentConfiguration.from_runnable_config(config)
-    model = load_chat_model(configuration.query_model)
+    model = make_chat_model(
+        configuration.query_model, fallbacks=configuration.query_model_fallbacks
+    )
     system_prompt = configuration.more_info_system_prompt.format(
         logic=state.router["logic"]
     )
@@ -109,7 +111,9 @@ async def respond_to_general_query(
         dict[str, list[str]]: A dictionary with a 'messages' key containing the generated response.
     """
     configuration = AgentConfiguration.from_runnable_config(config)
-    model = load_chat_model(configuration.query_model)
+    model = make_chat_model(
+        configuration.query_model, fallbacks=configuration.query_model_fallbacks
+    )
     system_prompt = configuration.general_system_prompt.format(
         logic=state.router["logic"]
     )
@@ -137,7 +141,9 @@ async def create_research_plan(
         steps: list[str]
 
     configuration = AgentConfiguration.from_runnable_config(config)
-    model = load_chat_model(configuration.query_model).with_structured_output(Plan)
+    model = make_structured_model(
+        configuration.query_model, Plan, configuration.query_model_fallbacks
+    )
     messages = [
         {"role": "system", "content": configuration.research_plan_system_prompt}
     ] + state.messages
@@ -202,7 +208,10 @@ async def respond(
         dict[str, list[str]]: A dictionary with a 'messages' key containing the generated response.
     """
     configuration = AgentConfiguration.from_runnable_config(config)
-    model = load_chat_model(configuration.response_model)
+    model = make_chat_model(
+        configuration.response_model,
+        fallbacks=configuration.response_model_fallbacks,
+    )
     context = format_docs(state.documents)
     prompt = configuration.response_system_prompt.format(context=context)
     messages = [{"role": "system", "content": prompt}] + state.messages
