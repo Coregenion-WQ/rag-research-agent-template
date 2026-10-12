@@ -1,4 +1,5 @@
-# This workflow will run integration tests for the current project once per day
+# Runs the integration tests against real services once per day. Tests that need
+# a provider API key skip themselves when the corresponding secret is missing.
 
 name: Integration Tests
 
@@ -13,13 +14,17 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   integration-tests:
     name: Integration Tests
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
     runs-on: ${{ matrix.os }}
     services:
       elasticsearch:
@@ -36,17 +41,24 @@ jobs:
           --health-timeout 3s
           --health-interval 3s
           --health-retries 10
+      qdrant:
+        image: qdrant/qdrant:v1.19.2
+        ports:
+          - 6333:6333
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.0
         with:
           python-version: ${{ matrix.python-version }}
+          activate-environment: true
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
       - name: Install dependencies
+        run: uv pip install -r pyproject.toml --extra dev
+      - name: Wait for Qdrant
         run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          uv venv
-          uv pip install -r pyproject.toml --extra dev
+          for i in $(seq 1 30); do curl -sf http://localhost:6333/readyz && exit 0; sleep 2; done
+          exit 1
       - name: Run integration tests
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -54,7 +66,7 @@ jobs:
           ELASTICSEARCH_URL: http://localhost:9200
           ELASTICSEARCH_USER: elastic
           ELASTICSEARCH_PASSWORD: ""
+          QDRANT_URL: http://localhost:6333
           LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
-          LANGSMITH_TRACING: true
-        run: |
-          uv run pytest tests/integration_tests
+          LANGSMITH_TRACING: ${{ secrets.LANGSMITH_API_KEY != '' }}
+        run: pytest tests/integration_tests -rs

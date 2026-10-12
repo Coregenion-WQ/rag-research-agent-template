@@ -1,4 +1,4 @@
-.PHONY: all format lint test tests test_watch integration_tests docker_tests help extended_tests
+.PHONY: all format lint test tests test_watch coverage integration_tests docker_smoke help extended_tests
 
 # Default target executed when no arguments are given to make.
 all: help
@@ -17,6 +17,16 @@ test_profile:
 
 extended_tests:
 	python -m pytest --only-extended $(TEST_FILE)
+
+coverage:
+	python -m pytest --cov=src --cov-report=term-missing tests/unit_tests
+
+# Needs running services, e.g. `docker compose up -d qdrant` and QDRANT_URL=http://localhost:6333.
+integration_tests:
+	python -m pytest tests/integration_tests -rs
+
+docker_smoke:
+	scripts/docker-smoke-test.sh
 
 
 ######################
@@ -61,4 +71,7 @@ help:
 	@echo 'tests                        - run unit tests'
 	@echo 'test TEST_FILE=<test_file>   - run all tests in file'
 	@echo 'test_watch                   - run unit tests in watch mode'
+	@echo 'coverage                     - run unit tests with a coverage report'
+	@echo 'integration_tests            - run integration tests against real services'
+	@echo 'docker_smoke                 - build and smoke test the Docker Compose stack'
 

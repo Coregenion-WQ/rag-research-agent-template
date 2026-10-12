@@ -76,6 +76,10 @@ def test_load_openai_model() -> None:
     assert model.model_name == "gpt-5-mini"
 
 
+def test_provider_is_inferred_when_prefix_is_missing() -> None:
+    assert isinstance(load_chat_model("gpt-5-mini"), ChatOpenAI)
+
+
 def test_unknown_provider_is_rejected() -> None:
     with pytest.raises(ValueError, match="nope"):
         load_chat_model("nope/some-model")
