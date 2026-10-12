@@ -14,7 +14,7 @@ from langgraph.types import Send
 from retrieval_graph.configuration import AgentConfiguration
 from retrieval_graph.researcher_graph.state import QueryState, ResearcherState
 from shared import retrieval
-from shared.utils import load_chat_model
+from shared.utils import make_structured_model
 
 
 async def generate_queries(
@@ -36,7 +36,9 @@ async def generate_queries(
         queries: list[str]
 
     configuration = AgentConfiguration.from_runnable_config(config)
-    model = load_chat_model(configuration.query_model).with_structured_output(Response)
+    model = make_structured_model(
+        configuration.query_model, Response, configuration.query_model_fallbacks
+    )
     messages = [
         {"role": "system", "content": configuration.generate_queries_system_prompt},
         {"role": "human", "content": state.question},

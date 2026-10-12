@@ -32,10 +32,15 @@ class FakeChatModel(BaseChatModel):
     # Typed as Any so pydantic keeps the factory's objects instead of copying them.
     structured: Any = None
     calls: Any = None
+    fail: bool = False
 
     @property
     def _llm_type(self) -> str:
         return "fake-chat"
+
+    def _maybe_fail(self) -> None:
+        if self.fail:
+            raise RuntimeError(f"{self.model_name} is unavailable")
 
     def _generate(
         self,
@@ -45,6 +50,7 @@ class FakeChatModel(BaseChatModel):
         **kwargs: Any,
     ) -> ChatResult:
         self.calls.append({"model": self.model_name, "messages": messages})
+        self._maybe_fail()
         return ChatResult(generations=[ChatGeneration(message=AIMessage(self.text))])
 
     def with_structured_output(  # type: ignore[override]
@@ -56,6 +62,7 @@ class FakeChatModel(BaseChatModel):
             self.calls.append(
                 {"model": self.model_name, "schema": name, "messages": messages}
             )
+            self._maybe_fail()
             return self.structured[name]
 
         return RunnableLambda(_respond)
@@ -64,8 +71,14 @@ class FakeChatModel(BaseChatModel):
 class FakeLLMFactory:
     """Replacement for `load_chat_model` that hands out shared fake models."""
 
-    def __init__(self, text: str = "fake answer", **structured: Any) -> None:
+    def __init__(
+        self,
+        text: str = "fake answer",
+        failing: frozenset[str] = frozenset(),
+        **structured: Any,
+    ) -> None:
         self.text = text
+        self.failing = failing
         self.structured = structured
         self.calls: list[dict[str, Any]] = []
         self.requested: list[str] = []
@@ -77,6 +90,7 @@ class FakeLLMFactory:
             text=self.text,
             structured=self.structured,
             calls=self.calls,
+            fail=fully_specified_name in self.failing,
         )
 
 
