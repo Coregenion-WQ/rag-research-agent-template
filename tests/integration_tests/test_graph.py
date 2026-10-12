@@ -31,6 +31,10 @@ def make_elastic_vectorstore(
     yield vstore
 
 
+@pytest.mark.skipif(
+    not (os.environ.get("ANTHROPIC_API_KEY") and os.environ.get("OPENAI_API_KEY")),
+    reason="needs ANTHROPIC_API_KEY and OPENAI_API_KEY",
+)
 @pytest.mark.asyncio
 @unit
 async def test_retrieval_graph() -> None:

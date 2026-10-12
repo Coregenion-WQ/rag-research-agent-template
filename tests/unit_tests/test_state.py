@@ -47,3 +47,10 @@ def test_documents_with_uuid_are_kept_as_is() -> None:
     doc = Document(page_content="text", metadata={"uuid": "u1"})
     result = reduce_docs([doc], [doc])
     assert result == [doc]
+
+
+def test_strings_in_a_list_are_deduplicated() -> None:
+    existing = reduce_docs(None, "a")
+    result = reduce_docs(existing, ["a", "b", "b"])
+    assert [d.page_content for d in result] == ["a", "b"]
+    assert result[1].metadata["uuid"] == _generate_uuid("b")

@@ -50,8 +50,11 @@ def reduce_docs(
         for item in new:
             if isinstance(item, str):
                 item_id = _generate_uuid(item)
-                new_list.append(Document(page_content=item, metadata={"uuid": item_id}))
-                existing_ids.add(item_id)
+                if item_id not in existing_ids:
+                    new_list.append(
+                        Document(page_content=item, metadata={"uuid": item_id})
+                    )
+                    existing_ids.add(item_id)
 
             elif isinstance(item, dict):
                 metadata = item.get("metadata", {})
