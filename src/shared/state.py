@@ -2,7 +2,7 @@
 
 import hashlib
 import uuid
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal, Union
 
 from langchain_core.documents import Document
 
@@ -14,7 +14,7 @@ def _generate_uuid(page_content: str) -> str:
 
 
 def reduce_docs(
-    existing: Optional[list[Document]],
+    existing: list[Document] | None,
     new: Union[
         list[Document],
         list[dict[str, Any]],
@@ -69,7 +69,7 @@ def reduce_docs(
                 item_id = item.metadata.get("uuid", "")
                 if not item_id:
                     item_id = _generate_uuid(item.page_content)
-                    new_item = item.copy(deep=True)
+                    new_item = item.model_copy(deep=True)
                     new_item.metadata["uuid"] = item_id
                 else:
                     new_item = item

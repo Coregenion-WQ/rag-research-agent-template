@@ -1,7 +1,6 @@
 """This "graph" simply exposes an endpoint for a user to upload docs to be indexed."""
 
 import json
-from typing import Optional
 
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
@@ -12,9 +11,7 @@ from shared import retrieval
 from shared.state import reduce_docs
 
 
-async def index_docs(
-    state: IndexState, *, config: Optional[RunnableConfig] = None
-) -> dict[str, str]:
+async def index_docs(state: IndexState, config: RunnableConfig) -> dict[str, str]:
     """Asynchronously index documents in the given state using the configured retriever.
 
     This function takes the documents from the state, ensures they have a user ID,
@@ -26,11 +23,8 @@ async def index_docs(
 
     Args:
         state (IndexState): The current state containing documents and retriever.
-        config (Optional[RunnableConfig]): Configuration for the indexing process.r
+        config (RunnableConfig): Configuration for the indexing process.
     """
-    if not config:
-        raise ValueError("Configuration required to run index_docs.")
-
     configuration = IndexConfiguration.from_runnable_config(config)
     docs = state.docs
     if not docs:
@@ -45,7 +39,7 @@ async def index_docs(
 
 
 # Define the graph
-builder = StateGraph(IndexState, config_schema=IndexConfiguration)
+builder = StateGraph(IndexState, context_schema=IndexConfiguration)
 builder.add_node(index_docs)
 builder.add_edge(START, "index_docs")
 builder.add_edge("index_docs", END)
