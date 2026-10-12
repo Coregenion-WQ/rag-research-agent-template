@@ -32,8 +32,11 @@ async def index_docs(state: IndexState, config: RunnableConfig) -> dict[str, str
             serialized_docs = json.load(f)
             docs = reduce_docs([], serialized_docs)
 
+    # Use stable IDs so re-indexing the same content overwrites instead of
+    # duplicating it.
+    ids = [doc.id or doc.metadata["uuid"] for doc in docs]
     with retrieval.make_retriever(config) as retriever:
-        await retriever.aadd_documents(docs)
+        await retriever.aadd_documents(docs, ids=ids)
 
     return {"docs": "delete"}
 
