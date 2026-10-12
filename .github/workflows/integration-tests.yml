@@ -68,5 +68,5 @@ jobs:
           ELASTICSEARCH_PASSWORD: ""
           QDRANT_URL: http://localhost:6333
           LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
-          LANGSMITH_TRACING: true
+          LANGSMITH_TRACING: ${{ secrets.LANGSMITH_API_KEY != '' }}
         run: pytest tests/integration_tests -rs
